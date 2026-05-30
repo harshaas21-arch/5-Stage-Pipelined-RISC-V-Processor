@@ -1,4 +1,8 @@
 5-Stage Pipelined RISC-V Processor with Dynamic Hazard Forwarding
+
+
+
+
 A functionally complete, structurally verified 5-stage pipelined RISC-V processor core designed in synthesizable Verilog HDL. This project models the core architectural stages of a classical RISC pipeline (Fetch, Decode, Execute, Memory, Write-Back) and implements robust microarchitectural mechanisms to dynamically resolve structural, data, and control hazards without compromising execution throughput.
  
  <img width="662" height="332" alt="image" src="https://github.com/user-attachments/assets/616a92aa-80d3-48c3-b326-27509004cbda" />
