@@ -116,3 +116,423 @@ Developing this high-performance core architecture independently provided profou
 
 •	Modular RTL Debugging: Developed advanced methodologies for tracking hardware runtime states by pairing custom Verilog loop trace captures with gate-level value change dump (.vcd) wave monitors. 
 
+Example: Assembly instructions:
+addi x1, x0, 15     # Load 15 into x1
+addi x2, x0, 5      # Load 5 into x2
+add x3, x1, x2      # x3 = 15 + 5 = 20
+sub x4, x3, x2      # x4 = 20 - 5 = 15
+and x5, x1, x2      # Logical AND operation
+or x6, x1, x0       # Logical OR operation
+ori x7, x0, 10      # Load immediate 10 into x7
+addi x8, x0, 32     # Setup Data RAM Target Pointer Address at 32
+sw x3, 0(x8)        # Store x3 (20) into RAM[32]
+addi x0, x0, 0      # Bubble NOP
+addi x0, x0, 0      # Bubble NOP
+lw x9, 0(x8)        # Load data from RAM[32] back into x9 (20)
+addi x0, x0, 0      # Bubble NOP
+addi x0, x0, 0      # Bubble NOP
+addi x0, x0, 0      # Bubble NOP
+add x10, x9, x2     # x10 = 20 + 5 = 25 (Evaluated as 5 in old forwarding trace)
+addi x11, x0, 5     # CHANGED: Load 5 into x11 to force equality match with x10
+addi x0, x0, 0      # ADDED: This extra NOP gives x11 time to stabilize before check
+addi x0, x0, 0      # Bubble NOP
+beq x10, x11, 16    # BRANCH TRUE: Evaluates 5 == 5 -> Jumps forward 16 bytes (4 instructions)
+addi x4, x0, 99     # Skipped!
+addi x5, x0, 99     # Skipped!
+sw x9, 4(x8)        # Skipped!
+addi x12, x0, 100   # Skipped!
+add x13, x10, x2    # Resumes running here: x13 = 5 + 5 = 10
+end
+
+Output:
+--- Time: 30000 ns (Setted State) ---
+Fetch  | PC: 0 | Raw Inst: 00f00093
+Decode | Opcode: 0000000 | rs1: 0 | rs2: 0 | rd: 0
+Exec   | ALU Result/Target: 0
+Memory | MemRead En: 0 | MemWrite En: 0 | Raw RAM Read Out: 0
+Status | Register File Snapshot:
+       | x1=0 | x2=0 | x3=0 | x4=0 | x5=0
+       | x6=0 | x7=0 | x8=0 | x9=0 | x10=0
+       | x11=0 | x12=0 | x13=0 | x14=0 | x15=0
+Status | Target Data Memory Segments:
+       | RAM[0]=x | RAM[4]=x | RAM[32]=x
+--------------------------------------------------------------------------------
+
+--- Time: 40000 ns (Setted State) ---
+Fetch  | PC: 4 | Raw Inst: 00500113
+Decode | Opcode: 0010011 | rs1: 0 | rs2: 15 | rd: 1
+Exec   | ALU Result/Target: 0
+Memory | MemRead En: 0 | MemWrite En: 0 | Raw RAM Read Out: 0
+Status | Register File Snapshot:
+       | x1=0 | x2=0 | x3=0 | x4=0 | x5=0
+       | x6=0 | x7=0 | x8=0 | x9=0 | x10=0
+       | x11=0 | x12=0 | x13=0 | x14=0 | x15=0
+Status | Target Data Memory Segments:
+       | RAM[0]=x | RAM[4]=x | RAM[32]=x
+--------------------------------------------------------------------------------
+
+--- Time: 50000 ns (Setted State) ---
+Fetch  | PC: 8 | Raw Inst: 002081b3
+Decode | Opcode: 0010011 | rs1: 0 | rs2: 5 | rd: 2
+Exec   | ALU Result/Target: 15
+Memory | MemRead En: 0 | MemWrite En: 0 | Raw RAM Read Out: 0
+Status | Register File Snapshot:
+       | x1=0 | x2=0 | x3=0 | x4=0 | x5=0
+       | x6=0 | x7=0 | x8=0 | x9=0 | x10=0
+       | x11=0 | x12=0 | x13=0 | x14=0 | x15=0
+Status | Target Data Memory Segments:
+       | RAM[0]=x | RAM[4]=x | RAM[32]=x
+--------------------------------------------------------------------------------
+
+--- Time: 60000 ns (Setted State) ---
+Fetch  | PC: 12 | Raw Inst: 40218233
+Decode | Opcode: 0110011 | rs1: 1 | rs2: 2 | rd: 3
+Exec   | ALU Result/Target: 5
+Memory | MemRead En: 0 | MemWrite En: 0 | Raw RAM Read Out: 0
+Status | Register File Snapshot:
+       | x1=0 | x2=0 | x3=0 | x4=0 | x5=0
+       | x6=0 | x7=0 | x8=0 | x9=0 | x10=0
+       | x11=0 | x12=0 | x13=0 | x14=0 | x15=0
+Status | Target Data Memory Segments:
+       | RAM[0]=x | RAM[4]=x | RAM[32]=x
+--------------------------------------------------------------------------------
+
+--- Time: 70000 ns (Setted State) ---
+Fetch  | PC: 16 | Raw Inst: 0020f2b3
+Decode | Opcode: 0110011 | rs1: 3 | rs2: 2 | rd: 4
+Exec   | ALU Result/Target: 20
+Memory | MemRead En: 0 | MemWrite En: 0 | Raw RAM Read Out: 0
+Status | Register File Snapshot:
+       | x1=0 | x2=0 | x3=0 | x4=0 | x5=0
+       | x6=0 | x7=0 | x8=0 | x9=0 | x10=0
+       | x11=0 | x12=0 | x13=0 | x14=0 | x15=0
+Status | Target Data Memory Segments:
+       | RAM[0]=x | RAM[4]=x | RAM[32]=x
+--------------------------------------------------------------------------------
+
+--- Time: 80000 ns (Setted State) ---
+Fetch  | PC: 20 | Raw Inst: 0000e333
+Decode | Opcode: 0110011 | rs1: 1 | rs2: 2 | rd: 5
+Exec   | ALU Result/Target: 15
+Memory | MemRead En: 0 | MemWrite En: 0 | Raw RAM Read Out: 0
+Status | Register File Snapshot:
+       | x1=15 | x2=0 | x3=0 | x4=0 | x5=0
+       | x6=0 | x7=0 | x8=0 | x9=0 | x10=0
+       | x11=0 | x12=0 | x13=0 | x14=0 | x15=0
+Status | Target Data Memory Segments:
+       | RAM[0]=x | RAM[4]=x | RAM[32]=x
+--------------------------------------------------------------------------------
+
+--- Time: 90000 ns (Setted State) ---
+Fetch  | PC: 24 | Raw Inst: 00a06393
+Decode | Opcode: 0110011 | rs1: 1 | rs2: 0 | rd: 6
+Exec   | ALU Result/Target: 0
+Memory | MemRead En: 0 | MemWrite En: 0 | Raw RAM Read Out: 0
+Status | Register File Snapshot:
+       | x1=15 | x2=5 | x3=0 | x4=0 | x5=0
+       | x6=0 | x7=0 | x8=0 | x9=0 | x10=0
+       | x11=0 | x12=0 | x13=0 | x14=0 | x15=0
+Status | Target Data Memory Segments:
+       | RAM[0]=x | RAM[4]=x | RAM[32]=x
+--------------------------------------------------------------------------------
+
+--- Time: 100000 ns (Setted State) ---
+Fetch  | PC: 28 | Raw Inst: 02000413
+Decode | Opcode: 0010011 | rs1: 0 | rs2: 10 | rd: 7
+Exec   | ALU Result/Target: 15
+Memory | MemRead En: 0 | MemWrite En: 0 | Raw RAM Read Out: 0
+Status | Register File Snapshot:
+       | x1=15 | x2=5 | x3=20 | x4=0 | x5=0
+       | x6=0 | x7=0 | x8=0 | x9=0 | x10=0
+       | x11=0 | x12=0 | x13=0 | x14=0 | x15=0
+Status | Target Data Memory Segments:
+       | RAM[0]=x | RAM[4]=x | RAM[32]=x
+--------------------------------------------------------------------------------
+
+--- Time: 110000 ns (Setted State) ---
+Fetch  | PC: 32 | Raw Inst: 00342023
+Decode | Opcode: 0010011 | rs1: 0 | rs2: 0 | rd: 8
+Exec   | ALU Result/Target: 10
+Memory | MemRead En: 0 | MemWrite En: 0 | Raw RAM Read Out: 0
+Status | Register File Snapshot:
+       | x1=15 | x2=5 | x3=20 | x4=15 | x5=0
+       | x6=0 | x7=0 | x8=0 | x9=0 | x10=0
+       | x11=0 | x12=0 | x13=0 | x14=0 | x15=0
+Status | Target Data Memory Segments:
+       | RAM[0]=x | RAM[4]=x | RAM[32]=x
+--------------------------------------------------------------------------------
+
+--- Time: 120000 ns (Setted State) ---
+Fetch  | PC: 36 | Raw Inst: 00042483
+Decode | Opcode: 0100011 | rs1: 8 | rs2: 3 | rd: 0
+Exec   | ALU Result/Target: 32
+Memory | MemRead En: 0 | MemWrite En: 0 | Raw RAM Read Out: 0
+Status | Register File Snapshot:
+       | x1=15 | x2=5 | x3=20 | x4=15 | x5=0
+       | x6=0 | x7=0 | x8=0 | x9=0 | x10=0
+       | x11=0 | x12=0 | x13=0 | x14=0 | x15=0
+Status | Target Data Memory Segments:
+       | RAM[0]=x | RAM[4]=x | RAM[32]=x
+--------------------------------------------------------------------------------
+
+--- Time: 130000 ns (Setted State) ---
+Fetch  | PC: 40 | Raw Inst: 00000013
+Decode | Opcode: 0000011 | rs1: 8 | rs2: 0 | rd: 9
+Exec   | ALU Result/Target: 32
+Memory | MemRead En: 0 | MemWrite En: 0 | Raw RAM Read Out: 0
+Status | Register File Snapshot:
+       | x1=15 | x2=5 | x3=20 | x4=15 | x5=0
+       | x6=15 | x7=0 | x8=0 | x9=0 | x10=0
+       | x11=0 | x12=0 | x13=0 | x14=0 | x15=0
+Status | Target Data Memory Segments:
+       | RAM[0]=x | RAM[4]=x | RAM[32]=x
+--------------------------------------------------------------------------------
+
+--- Time: 140000 ns (Setted State) ---
+Fetch  | PC: 44 | Raw Inst: 00000013
+Decode | Opcode: 0010011 | rs1: 0 | rs2: 0 | rd: 0
+Exec   | ALU Result/Target: 32
+Memory | MemRead En: 0 | MemWrite En: 1 | Raw RAM Read Out: 0
+Status | Register File Snapshot:
+       | x1=15 | x2=5 | x3=20 | x4=15 | x5=0
+       | x6=15 | x7=10 | x8=0 | x9=0 | x10=0
+       | x11=0 | x12=0 | x13=0 | x14=0 | x15=0
+Status | Target Data Memory Segments:
+       | RAM[0]=x | RAM[4]=x | RAM[32]=x
+--------------------------------------------------------------------------------
+
+--- Time: 150000 ns (Setted State) ---
+Fetch  | PC: 48 | Raw Inst: 00248533
+Decode | Opcode: 0010011 | rs1: 0 | rs2: 0 | rd: 0
+Exec   | ALU Result/Target: 0
+Memory | MemRead En: 1 | MemWrite En: 0 | Raw RAM Read Out: 20
+Status | Register File Snapshot:
+       | x1=15 | x2=5 | x3=20 | x4=15 | x5=0
+       | x6=15 | x7=10 | x8=32 | x9=0 | x10=0
+       | x11=0 | x12=0 | x13=0 | x14=0 | x15=0
+Status | Target Data Memory Segments:
+       | RAM[0]=x | RAM[4]=x | RAM[32]=20
+--------------------------------------------------------------------------------
+
+--- Time: 160000 ns (Setted State) ---
+Fetch  | PC: 52 | Raw Inst: 00500593
+Decode | Opcode: 0110011 | rs1: 9 | rs2: 2 | rd: 10
+Exec   | ALU Result/Target: 0
+Memory | MemRead En: 0 | MemWrite En: 0 | Raw RAM Read Out: 0
+Status | Register File Snapshot:
+       | x1=15 | x2=5 | x3=20 | x4=15 | x5=0
+       | x6=15 | x7=10 | x8=32 | x9=0 | x10=0
+       | x11=0 | x12=0 | x13=0 | x14=0 | x15=0
+Status | Target Data Memory Segments:
+       | RAM[0]=x | RAM[4]=x | RAM[32]=20
+--------------------------------------------------------------------------------
+
+--- Time: 170000 ns (Setted State) ---
+Fetch  | PC: 56 | Raw Inst: 00000013
+Decode | Opcode: 0010011 | rs1: 0 | rs2: 5 | rd: 11
+Exec   | ALU Result/Target: 5
+Memory | MemRead En: 0 | MemWrite En: 0 | Raw RAM Read Out: 0
+Status | Register File Snapshot:
+       | x1=15 | x2=5 | x3=20 | x4=15 | x5=0
+       | x6=15 | x7=10 | x8=32 | x9=20 | x10=0
+       | x11=0 | x12=0 | x13=0 | x14=0 | x15=0
+Status | Target Data Memory Segments:
+       | RAM[0]=x | RAM[4]=x | RAM[32]=20
+--------------------------------------------------------------------------------
+
+--- Time: 180000 ns (Setted State) ---
+Fetch  | PC: 60 | Raw Inst: 00000013
+Decode | Opcode: 0010011 | rs1: 0 | rs2: 0 | rd: 0
+Exec   | ALU Result/Target: 5
+Memory | MemRead En: 0 | MemWrite En: 0 | Raw RAM Read Out: 0
+Status | Register File Snapshot:
+       | x1=15 | x2=5 | x3=20 | x4=15 | x5=0
+       | x6=15 | x7=10 | x8=32 | x9=20 | x10=0
+       | x11=0 | x12=0 | x13=0 | x14=0 | x15=0
+Status | Target Data Memory Segments:
+       | RAM[0]=x | RAM[4]=x | RAM[32]=20
+--------------------------------------------------------------------------------
+
+--- Time: 190000 ns (Setted State) ---
+Fetch  | PC: 64 | Raw Inst: 00000013
+Decode | Opcode: 0010011 | rs1: 0 | rs2: 0 | rd: 0
+Exec   | ALU Result/Target: 0
+Memory | MemRead En: 0 | MemWrite En: 0 | Raw RAM Read Out: 0
+Status | Register File Snapshot:
+       | x1=15 | x2=5 | x3=20 | x4=15 | x5=0
+       | x6=15 | x7=10 | x8=32 | x9=20 | x10=0
+       | x11=0 | x12=0 | x13=0 | x14=0 | x15=0
+Status | Target Data Memory Segments:
+       | RAM[0]=x | RAM[4]=x | RAM[32]=20
+--------------------------------------------------------------------------------
+
+--- Time: 200000 ns (Setted State) ---
+Fetch  | PC: 68 | Raw Inst: 00b50863
+Decode | Opcode: 0010011 | rs1: 0 | rs2: 0 | rd: 0
+Exec   | ALU Result/Target: 0
+Memory | MemRead En: 0 | MemWrite En: 0 | Raw RAM Read Out: 0
+Status | Register File Snapshot:
+       | x1=15 | x2=5 | x3=20 | x4=15 | x5=0
+       | x6=15 | x7=10 | x8=32 | x9=20 | x10=5
+       | x11=0 | x12=0 | x13=0 | x14=0 | x15=0
+Status | Target Data Memory Segments:
+       | RAM[0]=x | RAM[4]=x | RAM[32]=20
+--------------------------------------------------------------------------------
+
+--- Time: 210000 ns (Setted State) ---
+Fetch  | PC: 72 | Raw Inst: 06300213
+Decode | Opcode: 1100011 | rs1: 10 | rs2: 11 | rd: 16
+Exec   | ALU Result/Target: 0
+Memory | MemRead En: 0 | MemWrite En: 0 | Raw RAM Read Out: 0
+Status | Register File Snapshot:
+       | x1=15 | x2=5 | x3=20 | x4=15 | x5=0
+       | x6=15 | x7=10 | x8=32 | x9=20 | x10=5
+       | x11=5 | x12=0 | x13=0 | x14=0 | x15=0
+Status | Target Data Memory Segments:
+       | RAM[0]=x | RAM[4]=x | RAM[32]=20
+--------------------------------------------------------------------------------
+
+--- Time: 220000 ns (Setted State) ---
+Fetch  | PC: 76 | Raw Inst: 06300293
+Decode | Opcode: 0010011 | rs1: 0 | rs2: 3 | rd: 4
+Exec   | ALU Result/Target: 0
+Memory | MemRead En: 0 | MemWrite En: 0 | Raw RAM Read Out: 0
+Status | Register File Snapshot:
+       | x1=15 | x2=5 | x3=20 | x4=15 | x5=0
+       | x6=15 | x7=10 | x8=32 | x9=20 | x10=5
+       | x11=5 | x12=0 | x13=0 | x14=0 | x15=0
+Status | Target Data Memory Segments:
+       | RAM[0]=x | RAM[4]=x | RAM[32]=20
+--------------------------------------------------------------------------------
+
+--- Time: 230000 ns (Setted State) ---
+Fetch  | PC: 84 | Raw Inst: 06400613
+Decode | Opcode: 0000000 | rs1: 0 | rs2: 0 | rd: 0
+Exec   | ALU Result/Target: 0
+Memory | MemRead En: 0 | MemWrite En: 0 | Raw RAM Read Out: 0
+Status | Register File Snapshot:
+       | x1=15 | x2=5 | x3=20 | x4=15 | x5=0
+       | x6=15 | x7=10 | x8=32 | x9=20 | x10=5
+       | x11=5 | x12=0 | x13=0 | x14=0 | x15=0
+Status | Target Data Memory Segments:
+       | RAM[0]=x | RAM[4]=x | RAM[32]=20
+--------------------------------------------------------------------------------
+
+--- Time: 240000 ns (Setted State) ---
+Fetch  | PC: 88 | Raw Inst: 002506b3
+Decode | Opcode: 0010011 | rs1: 0 | rs2: 4 | rd: 12
+Exec   | ALU Result/Target: 0
+Memory | MemRead En: 0 | MemWrite En: 0 | Raw RAM Read Out: 0
+Status | Register File Snapshot:
+       | x1=15 | x2=5 | x3=20 | x4=15 | x5=0
+       | x6=15 | x7=10 | x8=32 | x9=20 | x10=5
+       | x11=5 | x12=0 | x13=0 | x14=0 | x15=0
+Status | Target Data Memory Segments:
+       | RAM[0]=x | RAM[4]=x | RAM[32]=20
+--------------------------------------------------------------------------------
+
+--- Time: 250000 ns (Setted State) ---
+Fetch  | PC: 92 | Raw Inst: 00000000
+Decode | Opcode: 0110011 | rs1: 10 | rs2: 2 | rd: 13
+Exec   | ALU Result/Target: 100
+Memory | MemRead En: 0 | MemWrite En: 0 | Raw RAM Read Out: 0
+Status | Register File Snapshot:
+       | x1=15 | x2=5 | x3=20 | x4=15 | x5=0
+       | x6=15 | x7=10 | x8=32 | x9=20 | x10=5
+       | x11=5 | x12=0 | x13=0 | x14=0 | x15=0
+Status | Target Data Memory Segments:
+       | RAM[0]=x | RAM[4]=x | RAM[32]=20
+--------------------------------------------------------------------------------
+
+--- Time: 260000 ns (Setted State) ---
+Fetch  | PC: 96 | Raw Inst: xxxxxxxx
+Decode | Opcode: 0000000 | rs1: 0 | rs2: 0 | rd: 0
+Exec   | ALU Result/Target: 10
+Memory | MemRead En: 0 | MemWrite En: 0 | Raw RAM Read Out: 0
+Status | Register File Snapshot:
+       | x1=15 | x2=5 | x3=20 | x4=15 | x5=0
+       | x6=15 | x7=10 | x8=32 | x9=20 | x10=5
+       | x11=5 | x12=0 | x13=0 | x14=0 | x15=0
+Status | Target Data Memory Segments:
+       | RAM[0]=x | RAM[4]=x | RAM[32]=20
+--------------------------------------------------------------------------------
+
+--- Time: 270000 ns (Setted State) ---
+Fetch  | PC: 100 | Raw Inst: xxxxxxxx
+Decode | Opcode: xxxxxxx | rs1: x | rs2: x | rd: x
+Exec   | ALU Result/Target: 0
+Memory | MemRead En: 0 | MemWrite En: 0 | Raw RAM Read Out: 0
+Status | Register File Snapshot:
+       | x1=15 | x2=5 | x3=20 | x4=15 | x5=0
+       | x6=15 | x7=10 | x8=32 | x9=20 | x10=5
+       | x11=5 | x12=0 | x13=0 | x14=0 | x15=0
+Status | Target Data Memory Segments:
+       | RAM[0]=x | RAM[4]=x | RAM[32]=20
+--------------------------------------------------------------------------------
+
+--- Time: 280000 ns (Setted State) ---
+Fetch  | PC: 104 | Raw Inst: xxxxxxxx
+Decode | Opcode: xxxxxxx | rs1: x | rs2: x | rd: x
+Exec   | ALU Result/Target: 0
+Memory | MemRead En: 0 | MemWrite En: 0 | Raw RAM Read Out: 0
+Status | Register File Snapshot:
+       | x1=15 | x2=5 | x3=20 | x4=15 | x5=0
+       | x6=15 | x7=10 | x8=32 | x9=20 | x10=5
+       | x11=5 | x12=100 | x13=0 | x14=0 | x15=0
+Status | Target Data Memory Segments:
+       | RAM[0]=x | RAM[4]=x | RAM[32]=20
+--------------------------------------------------------------------------------
+
+--- Time: 290000 ns (Setted State) ---
+Fetch  | PC: x | Raw Inst: xxxxxxxx
+Decode | Opcode: xxxxxxx | rs1: x | rs2: x | rd: x
+Exec   | ALU Result/Target: 0
+Memory | MemRead En: 0 | MemWrite En: 0 | Raw RAM Read Out: 0
+Status | Register File Snapshot:
+       | x1=15 | x2=5 | x3=20 | x4=15 | x5=0
+       | x6=15 | x7=10 | x8=32 | x9=20 | x10=5
+       | x11=5 | x12=100 | x13=10 | x14=0 | x15=0
+Status | Target Data Memory Segments:
+       | RAM[0]=x | RAM[4]=x | RAM[32]=20
+--------------------------------------------------------------------------------
+
+--- Time: 300000 ns (Setted State) ---
+Fetch  | PC: x | Raw Inst: xxxxxxxx
+Decode | Opcode: xxxxxxx | rs1: x | rs2: x | rd: x
+Exec   | ALU Result/Target: 0
+Memory | MemRead En: 0 | MemWrite En: 0 | Raw RAM Read Out: 0
+Status | Register File Snapshot:
+       | x1=15 | x2=5 | x3=20 | x4=15 | x5=0
+       | x6=15 | x7=10 | x8=32 | x9=20 | x10=5
+       | x11=5 | x12=100 | x13=10 | x14=0 | x15=0
+Status | Target Data Memory Segments:
+       | RAM[0]=x | RAM[4]=x | RAM[32]=20
+--------------------------------------------------------------------------------
+
+--- Time: 310000 ns (Setted State) ---
+Fetch  | PC: x | Raw Inst: xxxxxxxx
+Decode | Opcode: xxxxxxx | rs1: x | rs2: x | rd: x
+Exec   | ALU Result/Target: 0
+Memory | MemRead En: 0 | MemWrite En: 0 | Raw RAM Read Out: 0
+Status | Register File Snapshot:
+       | x1=15 | x2=5 | x3=20 | x4=15 | x5=0
+       | x6=15 | x7=10 | x8=32 | x9=20 | x10=5
+       | x11=5 | x12=100 | x13=10 | x14=0 | x15=0
+Status | Target Data Memory Segments:
+       | RAM[0]=x | RAM[4]=x | RAM[32]=20
+--------------------------------------------------------------------------------
+
+--- Time: 320000 ns (Setted State) ---
+Fetch  | PC: x | Raw Inst: xxxxxxxx
+Decode | Opcode: xxxxxxx | rs1: x | rs2: x | rd: x
+Exec   | ALU Result/Target: 0
+Memory | MemRead En: 0 | MemWrite En: 0 | Raw RAM Read Out: 0
+Status | Register File Snapshot:
+       | x1=15 | x2=5 | x3=20 | x4=15 | x5=0
+       | x6=15 | x7=10 | x8=32 | x9=20 | x10=5
+       | x11=5 | x12=100 | x13=10 | x14=0 | x15=0
+Status | Target Data Memory Segments:
+       | RAM[0]=x | RAM[4]=x | RAM[32]=20
+--------------------------------------------------------------------------------
+
+<img width="1147" height="496" alt="image" src="https://github.com/user-attachments/assets/ecc30825-5f9a-4021-8d3e-c1fd76c38113" />
